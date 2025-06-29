@@ -2,9 +2,9 @@ streamlit==1.32.0
 pandas==2.2.1
 numpy==1.26.4
 plotly==5.22.0
-scikit-learn==1.4.2
+scikit-learn==1.4.1  # Downgraded from 1.4.2 to avoid numpy 2.0 conflict
 joblib==1.4.0
-packaging==23.2  # Downgraded to compatible version
+packaging==23.2
 Pillow==10.3.0
 streamlit-extras==0.3.6
 pyarrow==15.0.2
