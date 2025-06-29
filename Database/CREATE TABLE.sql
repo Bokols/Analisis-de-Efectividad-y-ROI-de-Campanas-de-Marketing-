@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS marketing_roi_analysis (
+    Campaign_ID INT,
+    Company VARCHAR(255),
+    Campaign_Type VARCHAR(255),
+    Target_Audience VARCHAR(255),
+    Duration VARCHAR(255),
+    Channel_Used VARCHAR(255),
+    Conversion_Rate FLOAT,
+    ROI FLOAT,
+    Location VARCHAR(255),
+    Language VARCHAR(255),
+    Clicks INT,
+    Impressions INT,
+    Engagement_Score INT,
+    Customer_Segment VARCHAR(255),
+    start_date DATETIME,
+    Costo_Adquisicion_CLP FLOAT,
+    end_date DATETIME,
+    Revenue_CLP FLOAT,
+    Product_Type VARCHAR(255)
+);

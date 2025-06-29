@@ -1,0 +1,27 @@
+# Ignore Python environment files
+__pycache__/
+*.py[cod]
+*.so
+
+# Ignore virtual environment folder (if named 'venv' or similar)
+venv/
+env/
+ENV/
+
+# Ignore .env file with secrets
+.env
+
+# Ignore IDE/editor files
+.vscode/
+.idea/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Custom ignores
+Create data/
+WORD FILES/
+# data/
+data/marketing_campaigns_eda.csv
+data/marketing_data_for_powerbi.csv
