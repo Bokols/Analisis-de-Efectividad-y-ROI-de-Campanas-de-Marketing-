@@ -16,7 +16,7 @@ Características:
 - Manejo robusto de datos vacíos
 
 Autor: Bo Kolstrup
-Versión: 1.3.1
+Versión: 1.3.2
 Última actualización: 2024-06-30
 """
 
@@ -30,7 +30,10 @@ import plotly.graph_objects as go
 from datetime import datetime
 import numpy as np
 from packaging import version
-from PIL import Image
+import warnings
+
+# Suppress FutureWarnings from pandas
+warnings.filterwarnings('ignore', category=FutureWarning)
 
 # --------------------------
 # Tooltip Compatibility Layer
@@ -611,7 +614,6 @@ with tab2:
     with col1:
         add_tooltip("Tasas de Conversión", "Compara tasas de conversión entre diferentes canales de marketing")
         if not metrics['conversion'].empty:
-            # FIXED: Replaced text_auto with manual text formatting
             fig = px.bar(metrics['conversion'],
                         x='Channel_Used', 
                         y='Conversion_Rate',
@@ -627,7 +629,6 @@ with tab2:
     with col2:
         add_tooltip("CTR por Canal", "Compara tasas de clics entre diferentes canales de marketing")
         if not metrics['ctr'].empty:
-            # FIXED: Replaced text_auto with manual text formatting
             fig = px.bar(metrics['ctr'],
                         x='Channel_Used', 
                         y='CTR',
@@ -640,7 +641,7 @@ with tab2:
         else:
             st.warning("No hay datos disponibles para mostrar CTR por canal")
     
-    add_tooltip("Clics vs Impresiones", "Analiza la relación entre impresiones y clics con línea de tendencia")
+    add_tooltip("Clics vs Impresiones", "Analiza la relación entre impresiones y clics")
     if len(filtered_df) > 0:
         plot_df = filtered_df.sample(min(1000, len(filtered_df))) if len(filtered_df) > 1000 else filtered_df
         fig = px.scatter(plot_df, 
@@ -648,7 +649,6 @@ with tab2:
                         y='Clicks', 
                         color='Channel_Used',
                         title="<b>Clics vs Impresiones</b>",
-                        trendline="lowess",
                         hover_data=['Campaign_Type', 'CTR'],
                         template="plotly_dark")
         fig.update_layout(height=500, font=dict(color='white'))
@@ -677,7 +677,6 @@ with tab3:
             fig = px.scatter(filtered_df, x='Clicks', y='Engagement_Score',
                             color='Channel_Used',
                             title="<b>Engagement vs Clics</b>",
-                            trendline="ols",
                             hover_data=['Campaign_Type', 'Conversion_Rate'],
                             template="plotly_dark")
             fig.update_layout(height=450, font=dict(color='white'))
@@ -701,7 +700,6 @@ with tab4:
     if not filtered_df.empty:
         trends_df = filtered_df.set_index('start_date')
         
-        # Updated frequency from 'ME' to 'M' for month-end resampling
         monthly_trends = trends_df.resample('M').agg({
             'ROI': 'mean',
             'Costo_Adquisicion_CLP': 'sum',
@@ -737,7 +735,6 @@ with tab4:
         
         add_tooltip("Rendimiento por Canal", "Compara tendencias de ROI entre diferentes canales de marketing")
         
-        # Updated frequency from 'ME' to 'M' for month-end grouping
         channel_trends = filtered_df.groupby(['Channel_Used', pd.Grouper(key='start_date', freq='M')]).agg({
             'ROI': 'mean',
             'Clicks': 'sum'
