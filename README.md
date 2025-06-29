@@ -4,8 +4,8 @@
 Este proyecto desarrolla una solución integral para analizar el rendimiento de campañas de marketing en múltiples canales. Al aprovechar SQL para gestión de datos, Python para modelos predictivos y Power BI para visualización, el sistema identifica canales de alto rendimiento, calcula métricas precisas de ROI y proporciona insights accionables para optimización de presupuesto. El modelo Random Forest alcanza un 96.9% de precisión (R²) en la predicción de ROI, permitiendo decisiones basadas en datos.
 
 **Explora los componentes de la aplicación:**  
-- **Prueba el modelo [aquí](link):**  
-- **Ver el análisis de Power BI [aquí](link):**  
+- **Prueba el modelo [aquí](https://enncd44sfjc7sspt8yyeqr.streamlit.app/Data_Explorer):**  
+- **Ver el análisis de Power BI [aquí](https://github.com/Bokols/Analisis-de-Efectividad-y-ROI-de-Campanas-de-Marketing-/blob/master/Powerbi.pdf):**  
 
 ## Introducción
 En el panorama actual del marketing digital, las organizaciones invierten fuertemente en múltiples canales - incluyendo redes sociales, email, motores de búsqueda y anuncios display - para atraer clientes e incrementar ingresos. Este proyecto aborda el desafío crítico de entender el verdadero impacto de estos esfuerzos mediante:
@@ -153,5 +153,5 @@ Proporciona valor especial para:
 - Alertas automáticas de desempeño  
 
 **Explora los componentes:**  
-- **Prueba el modelo [aquí](link):**  
-- **Ver el análisis de Power BI [aquí](link):**  
+- **Prueba el modelo [aquí]([link](https://enncd44sfjc7sspt8yyeqr.streamlit.app/Data_Explorer)):**  
+- **Ver el análisis de Power BI [aquí](https://github.com/Bokols/Analisis-de-Efectividad-y-ROI-de-Campanas-de-Marketing-/blob/master/Powerbi.pdf):**  
