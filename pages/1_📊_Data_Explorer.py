@@ -13,10 +13,11 @@ Características:
 - Capacidades de exploración de datos
 - Carga y procesamiento optimizado de datos
 - Diseño responsivo
+- Manejo robusto de datos vacíos
 
 Autor: Bo Kolstrup
-Versión: 1.2.0
-Última actualización: 2024-06-10
+Versión: 1.3.1
+Última actualización: 2024-06-30
 """
 
 # --------------------------
@@ -297,6 +298,15 @@ st.markdown("""
                 grid-template-columns: 1fr;
             }
         }
+        
+        /* Warning box styling */
+        .data-warning {
+            background-color: #332222;
+            border-left: 4px solid #ff4b4b;
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
     </style>
 """, unsafe_allow_html=True)
 
@@ -392,6 +402,11 @@ with st.sidebar:
 def filter_data(df, date_range, selected_channels, selected_campaign_types, 
                roi_categories, roi_range, spend_range):
     """Aplica todos los filtros seleccionados por el usuario al dataset."""
+    # Handle empty filters by defaulting to all options
+    selected_channels = selected_channels or df['Channel_Used'].unique()
+    selected_campaign_types = selected_campaign_types or df['Campaign_Type'].unique()
+    roi_categories = roi_categories or roi_labels
+    
     return df[
         (df['Channel_Used'].isin(selected_channels)) &
         (df['Campaign_Type'].isin(selected_campaign_types)) &
@@ -406,6 +421,25 @@ def filter_data(df, date_range, selected_channels, selected_campaign_types,
 
 filtered_df = filter_data(df, date_range, selected_channels, selected_campaign_types,
                          roi_categories, roi_range, spend_range)
+
+# --------------------------
+# Handle empty dataset scenario
+# --------------------------
+if filtered_df.empty:
+    st.markdown("""
+        <div class="data-warning">
+            <h3>⚠️ Sin datos disponibles</h3>
+            <p>Los filtros seleccionados no devuelven ningún dato. Por favor:</p>
+            <ul>
+                <li>Amplíe el rango de fechas</li>
+                <li>Seleccione más canales o tipos de campaña</li>
+                <li>Relaje los rangos de ROI o gasto</li>
+            </ul>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Skip rest of the app
+    st.stop()
 
 # --------------------------
 # Improved KPI Cards Section
@@ -521,38 +555,47 @@ with tab1:
     col1, col2 = st.columns([6,4])
     with col1:
         add_tooltip("ROI por Canal", "Compara la distribución del rendimiento de ROI entre diferentes canales")
-        fig = px.box(filtered_df, x='Channel_Used', y='ROI', 
-                    title="<b>Distribución ROI por Canal</b>",
-                    color='Channel_Used',
-                    color_discrete_sequence=px.colors.qualitative.Dark24,
-                    template="plotly_dark")
-        fig.update_layout(height=450, font=dict(color='white'), showlegend=False)
-        st.plotly_chart(fig, use_container_width=True)
+        if not filtered_df['Channel_Used'].empty:
+            fig = px.box(filtered_df, x='Channel_Used', y='ROI', 
+                        title="<b>Distribución ROI por Canal</b>",
+                        color='Channel_Used',
+                        color_discrete_sequence=px.colors.qualitative.Dark24,
+                        template="plotly_dark")
+            fig.update_layout(height=450, font=dict(color='white'), showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No hay datos disponibles para mostrar ROI por canal")
     
     with col2:
         add_tooltip("Distribución ROI", "Distribución de valores de ROI categorizados por nivel de rendimiento")
-        fig = px.histogram(filtered_df, x='ROI', 
-                          title="<b>Distribución ROI</b>",
-                          nbins=30,
-                          color='ROI_category',
-                          color_discrete_sequence=px.colors.sequential.Plasma,
-                          template="plotly_dark")
-        fig.update_layout(height=450, font=dict(color='white'))
-        st.plotly_chart(fig, use_container_width=True)
+        if not filtered_df.empty and 'ROI_category' in filtered_df:
+            fig = px.histogram(filtered_df, x='ROI', 
+                              title="<b>Distribución ROI</b>",
+                              nbins=30,
+                              color='ROI_category',
+                              color_discrete_sequence=px.colors.sequential.Plasma,
+                              template="plotly_dark")
+            fig.update_layout(height=450, font=dict(color='white'))
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No hay datos disponibles para mostrar la distribución de ROI")
     
     add_tooltip("ROI vs Gasto", "Explora la relación entre gasto en campañas y ROI (tamaño de burbuja = impresiones)")
-    plot_df = filtered_df.sample(min(1000, len(filtered_df))) if len(filtered_df) > 1000 else filtered_df
-    fig = px.scatter(plot_df, 
-                    x='Costo_Adquisicion_CLP', 
-                    y='ROI', 
-                    size='Impressions',
-                    color='Channel_Used',
-                    log_x=True,
-                    title="<b>ROI vs Gasto en Campañas</b>",
-                    hover_data=['Campaign_Type', 'Conversion_Rate'],
-                    template="plotly_dark")
-    fig.update_layout(height=500, font=dict(color='white'))
-    st.plotly_chart(fig, use_container_width=True)
+    if len(filtered_df) > 0:
+        plot_df = filtered_df.sample(min(1000, len(filtered_df))) if len(filtered_df) > 1000 else filtered_df
+        fig = px.scatter(plot_df, 
+                        x='Costo_Adquisicion_CLP', 
+                        y='ROI', 
+                        size='Impressions',
+                        color='Channel_Used',
+                        log_x=True,
+                        title="<b>ROI vs Gasto en Campañas</b>",
+                        hover_data=['Campaign_Type', 'Conversion_Rate'],
+                        template="plotly_dark")
+        fig.update_layout(height=500, font=dict(color='white'))
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No hay datos suficientes para mostrar ROI vs Gasto")
 
 with tab2:
     @st.cache_data
@@ -567,119 +610,151 @@ with tab2:
     col1, col2 = st.columns(2)
     with col1:
         add_tooltip("Tasas de Conversión", "Compara tasas de conversión entre diferentes canales de marketing")
-        fig = px.bar(metrics['conversion'],
-                    x='Channel_Used', 
-                    y='Conversion_Rate',
-                    title="<b>Tasa de Conversión Promedio por Canal</b>",
-                    color='Channel_Used',
-                    text_auto='.1%',
-                    template="plotly_dark")
-        fig.update_layout(height=400, showlegend=False, font=dict(color='white'))
-        st.plotly_chart(fig, use_container_width=True)
+        if not metrics['conversion'].empty:
+            # FIXED: Replaced text_auto with manual text formatting
+            fig = px.bar(metrics['conversion'],
+                        x='Channel_Used', 
+                        y='Conversion_Rate',
+                        title="<b>Tasa de Conversión Promedio por Canal</b>",
+                        color='Channel_Used',
+                        template="plotly_dark")
+            fig.update_traces(texttemplate='%{y:.1%}', textposition='outside')
+            fig.update_layout(height=400, showlegend=False, font=dict(color='white'))
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No hay datos disponibles para mostrar la tasa de conversión")
     
     with col2:
         add_tooltip("CTR por Canal", "Compara tasas de clics entre diferentes canales de marketing")
-        fig = px.bar(metrics['ctr'],
-                    x='Channel_Used', 
-                    y='CTR',
-                    title="<b>CTR Promedio por Canal</b>",
-                    color='Channel_Used',
-                    text_auto='.1f',
-                    template="plotly_dark")
-        fig.update_layout(height=400, showlegend=False, font=dict(color='white'))
-        st.plotly_chart(fig, use_container_width=True)
+        if not metrics['ctr'].empty:
+            # FIXED: Replaced text_auto with manual text formatting
+            fig = px.bar(metrics['ctr'],
+                        x='Channel_Used', 
+                        y='CTR',
+                        title="<b>CTR Promedio por Canal</b>",
+                        color='Channel_Used',
+                        template="plotly_dark")
+            fig.update_traces(texttemplate='%{y:.1f}', textposition='outside')
+            fig.update_layout(height=400, showlegend=False, font=dict(color='white'))
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No hay datos disponibles para mostrar CTR por canal")
     
     add_tooltip("Clics vs Impresiones", "Analiza la relación entre impresiones y clics con línea de tendencia")
-    plot_df = filtered_df.sample(min(1000, len(filtered_df))) if len(filtered_df) > 1000 else filtered_df
-    fig = px.scatter(plot_df, 
-                    x='Impressions', 
-                    y='Clicks', 
-                    color='Channel_Used',
-                    title="<b>Clics vs Impresiones</b>",
-                    trendline="lowess",
-                    hover_data=['Campaign_Type', 'CTR'],
-                    template="plotly_dark")
-    fig.update_layout(height=500, font=dict(color='white'))
-    st.plotly_chart(fig, use_container_width=True)
+    if len(filtered_df) > 0:
+        plot_df = filtered_df.sample(min(1000, len(filtered_df))) if len(filtered_df) > 1000 else filtered_df
+        fig = px.scatter(plot_df, 
+                        x='Impressions', 
+                        y='Clicks', 
+                        color='Channel_Used',
+                        title="<b>Clics vs Impresiones</b>",
+                        trendline="lowess",
+                        hover_data=['Campaign_Type', 'CTR'],
+                        template="plotly_dark")
+        fig.update_layout(height=500, font=dict(color='white'))
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No hay datos suficientes para comparar clics e impresiones")
 
 with tab3:
     col1, col2 = st.columns(2)
     with col1:
         add_tooltip("Engagement por Canal", "Compara distribuciones de puntuación de engagement entre canales")
-        fig = px.box(filtered_df, x='Channel_Used', y='Engagement_Score',
-                    title="<b>Puntuación de Engagement por Canal</b>",
-                    color='Channel_Used',
-                    color_discrete_sequence=px.colors.qualitative.Pastel,
-                    template="plotly_dark")
-        fig.update_layout(height=450, font=dict(color='white'), showlegend=False)
-        st.plotly_chart(fig, use_container_width=True)
+        if not filtered_df.empty:
+            fig = px.box(filtered_df, x='Channel_Used', y='Engagement_Score',
+                        title="<b>Puntuación de Engagement por Canal</b>",
+                        color='Channel_Used',
+                        color_discrete_sequence=px.colors.qualitative.Pastel,
+                        template="plotly_dark")
+            fig.update_layout(height=450, font=dict(color='white'), showlegend=False)
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No hay datos disponibles para mostrar engagement por canal")
     
     with col2:
         add_tooltip("Engagement vs Clics", "Explora la relación entre clics y puntuaciones de engagement")
-        fig = px.scatter(filtered_df, x='Clicks', y='Engagement_Score',
-                        color='Channel_Used',
-                        title="<b>Engagement vs Clics</b>",
-                        trendline="ols",
-                        hover_data=['Campaign_Type', 'Conversion_Rate'],
-                        template="plotly_dark")
-        fig.update_layout(height=450, font=dict(color='white'))
-        st.plotly_chart(fig, use_container_width=True)
+        if len(filtered_df) > 0:
+            fig = px.scatter(filtered_df, x='Clicks', y='Engagement_Score',
+                            color='Channel_Used',
+                            title="<b>Engagement vs Clics</b>",
+                            trendline="ols",
+                            hover_data=['Campaign_Type', 'Conversion_Rate'],
+                            template="plotly_dark")
+            fig.update_layout(height=450, font=dict(color='white'))
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No hay datos suficientes para comparar engagement y clics")
     
     add_tooltip("Distribución de Engagement", "Distribución de puntuaciones de engagement coloreadas por canal")
-    fig = px.histogram(filtered_df, x='Engagement_Score',
-                      nbins=20,
-                      color='Channel_Used',
-                      title="<b>Distribución de Puntuaciones de Engagement</b>",
-                      template="plotly_dark")
-    fig.update_layout(height=450, font=dict(color='white'))
-    st.plotly_chart(fig, use_container_width=True)
+    if not filtered_df.empty:
+        fig = px.histogram(filtered_df, x='Engagement_Score',
+                          nbins=20,
+                          color='Channel_Used',
+                          title="<b>Distribución de Puntuaciones de Engagement</b>",
+                          template="plotly_dark")
+        fig.update_layout(height=450, font=dict(color='white'))
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("No hay datos disponibles para mostrar la distribución de engagement")
 
 with tab4:
-    trends_df = filtered_df.set_index('start_date')
-    
-    # Updated frequency from 'ME' to 'M' for month-end resampling
-    monthly_trends = trends_df.resample('M').agg({
-        'ROI': 'mean',
-        'Costo_Adquisicion_CLP': 'sum',
-        'Clicks': 'sum',
-        'Impressions': 'sum',
-        'Engagement_Score': 'mean'
-    }).reset_index()
-    
-    col1, col2 = st.columns(2)
-    with col1:
-        add_tooltip("Tendencia ROI", "Seguimiento mensual del rendimiento promedio de ROI")
-        fig = px.line(monthly_trends, x='start_date', y='ROI',
-                     title="<b>Tendencia Mensual de ROI Promedio</b>",
-                     markers=True,
-                     template="plotly_dark")
-        fig.update_layout(height=400, font=dict(color='white'))
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        add_tooltip("Tendencia de Gasto", "Seguimiento mensual del gasto total en marketing")
-        fig = px.line(monthly_trends, x='start_date', y='Costo_Adquisicion_CLP',
-                     title="<b>Tendencia Mensual de Gasto (CLP)</b>",
-                     markers=True,
-                     template="plotly_dark")
-        fig.update_layout(height=400, font=dict(color='white'))
-        st.plotly_chart(fig, use_container_width=True)
-    
-    add_tooltip("Rendimiento por Canal", "Compara tendencias de ROI entre diferentes canales de marketing")
-    
-    # Updated frequency from 'ME' to 'M' for month-end grouping
-    channel_trends = filtered_df.groupby(['Channel_Used', pd.Grouper(key='start_date', freq='M')]).agg({
-        'ROI': 'mean',
-        'Clicks': 'sum'
-    }).reset_index()
-    
-    fig = px.line(channel_trends, x='start_date', y='ROI',
-                 color='Channel_Used',
-                 title="<b>Tendencias de ROI por Canal</b>",
-                 markers=True,
-                 template="plotly_dark")
-    fig.update_layout(height=500, font=dict(color='white'))
-    st.plotly_chart(fig, use_container_width=True)
+    if not filtered_df.empty:
+        trends_df = filtered_df.set_index('start_date')
+        
+        # Updated frequency from 'ME' to 'M' for month-end resampling
+        monthly_trends = trends_df.resample('M').agg({
+            'ROI': 'mean',
+            'Costo_Adquisicion_CLP': 'sum',
+            'Clicks': 'sum',
+            'Impressions': 'sum',
+            'Engagement_Score': 'mean'
+        }).reset_index()
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            add_tooltip("Tendencia ROI", "Seguimiento mensual del rendimiento promedio de ROI")
+            if not monthly_trends.empty:
+                fig = px.line(monthly_trends, x='start_date', y='ROI',
+                             title="<b>Tendencia Mensual de ROI Promedio</b>",
+                             markers=True,
+                             template="plotly_dark")
+                fig.update_layout(height=400, font=dict(color='white'))
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("No hay datos suficientes para mostrar tendencias de ROI")
+        
+        with col2:
+            add_tooltip("Tendencia de Gasto", "Seguimiento mensual del gasto total en marketing")
+            if not monthly_trends.empty:
+                fig = px.line(monthly_trends, x='start_date', y='Costo_Adquisicion_CLP',
+                             title="<b>Tendencia Mensual de Gasto (CLP)</b>",
+                             markers=True,
+                             template="plotly_dark")
+                fig.update_layout(height=400, font=dict(color='white'))
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("No hay datos suficientes para mostrar tendencias de gasto")
+        
+        add_tooltip("Rendimiento por Canal", "Compara tendencias de ROI entre diferentes canales de marketing")
+        
+        # Updated frequency from 'ME' to 'M' for month-end grouping
+        channel_trends = filtered_df.groupby(['Channel_Used', pd.Grouper(key='start_date', freq='M')]).agg({
+            'ROI': 'mean',
+            'Clicks': 'sum'
+        }).reset_index()
+        
+        if not channel_trends.empty:
+            fig = px.line(channel_trends, x='start_date', y='ROI',
+                         color='Channel_Used',
+                         title="<b>Tendencias de ROI por Canal</b>",
+                         markers=True,
+                         template="plotly_dark")
+            fig.update_layout(height=500, font=dict(color='white'))
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No hay datos suficientes para mostrar tendencias por canal")
+    else:
+        st.warning("No hay datos disponibles para análisis de tendencias")
 
 # --------------------------
 # Data Explorer Section
