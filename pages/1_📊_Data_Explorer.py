@@ -712,10 +712,11 @@ with tab4:
         with col1:
             add_tooltip("Tendencia ROI", "Seguimiento mensual del rendimiento promedio de ROI")
             if not monthly_trends.empty:
+                # FIXED: Remove markers=True and update traces instead
                 fig = px.line(monthly_trends, x='start_date', y='ROI',
                              title="<b>Tendencia Mensual de ROI Promedio</b>",
-                             markers=True,
                              template="plotly_dark")
+                fig.update_traces(mode='lines+markers')  # Add markers here
                 fig.update_layout(height=400, font=dict(color='white'))
                 st.plotly_chart(fig, use_container_width=True)
             else:
@@ -724,10 +725,11 @@ with tab4:
         with col2:
             add_tooltip("Tendencia de Gasto", "Seguimiento mensual del gasto total en marketing")
             if not monthly_trends.empty:
+                # FIXED: Remove markers=True and update traces instead
                 fig = px.line(monthly_trends, x='start_date', y='Costo_Adquisicion_CLP',
                              title="<b>Tendencia Mensual de Gasto (CLP)</b>",
-                             markers=True,
                              template="plotly_dark")
+                fig.update_traces(mode='lines+markers')  # Add markers here
                 fig.update_layout(height=400, font=dict(color='white'))
                 st.plotly_chart(fig, use_container_width=True)
             else:
@@ -741,11 +743,12 @@ with tab4:
         }).reset_index()
         
         if not channel_trends.empty:
+            # FIXED: Remove markers=True and update traces instead
             fig = px.line(channel_trends, x='start_date', y='ROI',
                          color='Channel_Used',
                          title="<b>Tendencias de ROI por Canal</b>",
-                         markers=True,
                          template="plotly_dark")
+            fig.update_traces(mode='lines+markers')  # Add markers here
             fig.update_layout(height=500, font=dict(color='white'))
             st.plotly_chart(fig, use_container_width=True)
         else:
